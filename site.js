@@ -1,6 +1,6 @@
-var osmMinutely = require('./');
+var osmStream = require('osm-stream');
 
-osmMinutely()
+osmStream()
     .stream()
     .on('data', function(d) {
         console.log(d);

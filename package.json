@@ -1,5 +1,5 @@
 {
-  "name": "osm-minutely-stream",
+  "name": "osm-stream",
   "version": "0.0.0",
   "description": "stream minutely openstreetmap diffs",
   "main": "index.js",

@@ -1,7 +1,10 @@
-var osmStream = require('osm-stream');
+var osmStream = require('./');
 
-osmStream()
-    .stream()
-    .on('data', function(d) {
+osmStream.run(function(err, stream) {
+    stream.on('data', function(d) {
         console.log(d);
     });
+});
+
+osmStream.once(function(err, d) {
+});

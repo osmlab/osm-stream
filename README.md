@@ -5,9 +5,23 @@ Uses the [Overpass API](http://overpass-api.de/) for
 loads data with CORS and exposes a stream.
 
 ```js
+// re-request every 60s
 osmStream()
-    .stream()
-    .on('data', function(d) {
+    .run(function(err, stream) {
+        stream.on('data', function(d) {
+            console.log(d);
+        });
+    });
+
+// one-time request
+osmStream()
+    .once(function(err, d) {
         console.log(d);
     });
 ```
+
+The stream returned uses [through](https://github.com/dominictarr/through).
+
+### See Also
+
+* [osm-stream-process](https://github.com/iandees/osm-stream-process) in Python

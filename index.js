@@ -1,9 +1,8 @@
 var reqwest = require('reqwest'),
-    pad = require('pad'),
     qs = require('qs'),
     through = require('through');
 
-function osmMinutely() {
+var osmStream = (function osmMinutely() {
     var s = {};
 
     // presets
@@ -44,20 +43,6 @@ function osmMinutely() {
         });
     }
 
-    function getSequence(body) {
-        var match = body.match(/sequence\: (\d+)/);
-        if (match) return pad(9, match[1], '0');
-    }
-
-    var state;
-
-    var stream = through(function(data) {
-        this.queue(data);
-    },
-    function() {
-        this.queue(null);
-    });
-
     function parseNode(x) {
         if (!x) return undefined;
         var o = {
@@ -86,9 +71,8 @@ function osmMinutely() {
         }
     }
 
-    requestState(function(err, resp) {
-        state = resp;
-        requestChangeset(resp, function(err, xml) {
+    function run(id, stream) {
+        requestChangeset(id, function(err, xml) {
             var actions = xml.getElementsByTagName('action'), a;
             for (var i = 0; i < actions.length; i++) {
                 var o = {};
@@ -105,13 +89,37 @@ function osmMinutely() {
                 }
             }
         });
-    });
+    }
 
-    s.stream = function() {
-        return stream;
+    s.once = function(cb) {
+        requestState(function(err, resp) {
+            var stream = through(function write(data) {
+                cb(null, data);
+            });
+            run(resp, stream);
+        });
+    };
+
+    s.run = function(cb, duration) {
+        requestState(function(err, resp) {
+            var state = resp;
+            var stream = through(
+                function write(data) {
+                    this.queue(data);
+                },
+                function end() {
+                    window.clearInterval(interval);
+                    this.queue(null);
+                });
+            cb(null, stream);
+            run(state++, stream);
+            var interval = setInterval(function() {
+                run(state++, stream);
+            }, duration || 60 * 1000);
+        });
     };
 
     return s;
-}
+})();
 
-module.exports = osmMinutely;
+module.exports = osmStream;

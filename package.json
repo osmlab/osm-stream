@@ -1,0 +1,26 @@
+{
+  "name": "osm-minutely-stream",
+  "version": "0.0.0",
+  "description": "stream minutely openstreetmap diffs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "./node_modules/browservefy/bin/browservefy index.js:bundle.js 8080 --browserify=./node_modules/browserify/bin/cmd.js -- -d"
+  },
+  "repository": "",
+  "keywords": [
+    "openstreetmap"
+  ],
+  "author": "Tom MacWright <tom@macwright.org>",
+  "license": "BSD",
+  "dependencies": {
+    "reqwest": "~0.6.4",
+    "through": "~2.2.6",
+    "pad": "0.0.4",
+    "zlibjs": "git://github.com/imaya/zlib.js.git"
+  },
+  "devDependencies": {
+    "browserify": "2.4.3",
+    "browservefy": "0.0.8"
+  }
+}

@@ -1,18 +1,26 @@
 var reqwest = require('reqwest'),
     pad = require('pad'),
-    zlib = require('zlib'),
+    qs = require('qs'),
     through = require('through');
 
 function osmMinutely() {
     var s = {};
 
     // presets
-    var baseUrl = 'http://planet.openstreetmap.org/',
-        changePath = 'replication/changesets/',
-        minuteStatePath = 'replication/changesets/state.yaml';
+    var baseUrl = 'http://overpass-api.de/',
+        minuteStatePath = 'augmented_diffs/state.txt',
+        changePath = 'api/augmented_diff?id=229543&info=no&bbox=-253,-62,253,62';
 
-    function minuteStateUrl() { return baseUrl + minuteStatePath; }
-    function changeUrl() { return baseUrl + changePath; }
+    function minuteStateUrl() {
+        return baseUrl + minuteStatePath;
+    }
+
+    function changeUrl(id) {
+        return baseUrl + changePath + qs.stringify({
+            id: id, info: 'no',
+            bbox: '-180,-90,180,90'
+        });
+    }
 
     function requestState(cb) {
         reqwest({
@@ -20,31 +28,18 @@ function osmMinutely() {
             crossOrigin: true,
             type: 'text',
             success: function(res) {
-              cb(null, res.response);
+                cb(null, res.response);
             }
         });
     }
 
-    function binreq(u, c) {
-        var oReq = new XMLHttpRequest();
-        oReq.open("GET", u, true);
-        oReq.responseType = "arraybuffer";
-
-        oReq.onload = function (oEvent) {
-          var arrayBuffer = oReq.response; // Note: not oReq.responseText
-          var byteArray = new Uint8Array(arrayBuffer);
-          c(arrayBuffer);
-        };
-
-        oReq.send(null);
-    }
-
-    function requestChangeset(url, cb) {
-        binreq(url, function(res) {
-            try {
-            console.log(zlib.inflateSync(res));
-            } catch(e) {
-                throw e;
+    function requestChangeset(state, cb) {
+        reqwest({
+            url: changeUrl(state),
+            crossOrigin: true,
+            type: 'xml',
+            success: function(res) {
+                cb(null, res);
             }
         });
     }
@@ -54,18 +49,67 @@ function osmMinutely() {
         if (match) return pad(9, match[1], '0');
     }
 
-    function getSeqUrl(seq) {
-        return changeUrl() + seq.slice(0, 3) +
-            '/' + seq.slice(3, 6) + '/' + seq.slice(6, 9) + '.osm.gz';
+    var state;
+
+    var stream = through(function(data) {
+        this.queue(data);
+    },
+    function() {
+        this.queue(null);
+    });
+
+    function parseNode(x) {
+        if (!x) return undefined;
+        var o = {
+            type: x.tagName,
+            lat: +x.getAttribute('lat'),
+            lon: +x.getAttribute('lon'),
+            user: x.getAttribute('user'),
+            timestamp: x.getAttribute('timestamp')
+        };
+        if (o.type == 'way') {
+            var bounds = get(x, ['bounds']);
+            o.bounds = [
+                +bounds.getAttribute('maxlat'),
+                +bounds.getAttribute('maxlon'),
+                +bounds.getAttribute('minlat'),
+                +bounds.getAttribute('minlon')];
+        }
+        return o;
+    }
+
+    function get(x, y) {
+        if (!x) return undefined;
+        for (var i = 0; i < y.length; i++) {
+            var o = x.getElementsByTagName(y[i])[0];
+            if (o) return o;
+        }
     }
 
     requestState(function(err, resp) {
-        var seq = getSequence(resp);
-        var url = getSeqUrl(seq);
-        requestChangeset(url, function() {
-            console.log(arguments);
+        state = resp;
+        requestChangeset(resp, function(err, xml) {
+            var actions = xml.getElementsByTagName('action'), a;
+            for (var i = 0; i < actions.length; i++) {
+                var o = {};
+                a = actions[i];
+                o.type = a.getAttribute('type');
+                if (o.type == 'modify') {
+                    o.old = parseNode(get(get(a, 'old'), ['node', 'way']));
+                    o.neu = parseNode(get(get(a, 'new'), ['node', 'way']));
+                } else {
+                    o.neu = parseNode(get(a, ['node', 'way']));
+                }
+                if (o.old || o.neu) {
+                    stream.write(o);
+                }
+            }
         });
     });
+
+    s.stream = function() {
+        return stream;
+    };
 
     return s;
 }

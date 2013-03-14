@@ -17,10 +17,9 @@
     "reqwest": "~0.6.4",
     "through": "~2.2.6",
     "pad": "0.0.4",
-    "zlibjs": "git://github.com/imaya/zlib.js.git"
+    "qs": "~0.5.3"
   },
   "devDependencies": {
-    "browserify": "2.4.3",
-    "browservefy": "0.0.8"
+    "browserify": "2.4.3"
   }
 }

@@ -16,8 +16,7 @@ var osmStream = (function osmMinutely() {
 
     function changeUrl(id) {
         return baseUrl + changePath + qs.stringify({
-            id: id, info: 'no',
-            bbox: '-180,-90,180,90'
+            id: id, info: 'no', bbox: '-180,-90,180,90'
         });
     }
 
@@ -71,9 +70,10 @@ var osmStream = (function osmMinutely() {
         }
     }
 
-    function run(id, stream) {
+    function run(id, cb) {
         requestChangeset(id, function(err, xml) {
             var actions = xml.getElementsByTagName('action'), a;
+            var items = [];
             for (var i = 0; i < actions.length; i++) {
                 var o = {};
                 a = actions[i];
@@ -85,9 +85,10 @@ var osmStream = (function osmMinutely() {
                     o.neu = parseNode(get(a, ['node', 'way']));
                 }
                 if (o.old || o.neu) {
-                    stream.write(o);
+                    items.push(o);
                 }
             }
+            cb(items);
         });
     }
 
@@ -112,9 +113,26 @@ var osmStream = (function osmMinutely() {
                     this.queue(null);
                 });
             cb(null, stream);
-            run(state++, stream);
+            run(state++, function(items) {
+                for (var i = 0; i < items.length; i++) {
+                    stream.write(items[i]);
+                }
+            });
             var interval = setInterval(function() {
                 run(state++, stream);
+            }, duration || 60 * 1000);
+        });
+    };
+
+    s.runFn = function(cb, duration) {
+        requestState(function(err, resp) {
+            function write(items) {
+                cb(null, items);
+            }
+            var state = resp;
+            run(state++, write);
+            var interval = setInterval(function() {
+                run(state++, write);
             }, duration || 60 * 1000);
         });
     };

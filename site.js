@@ -6,5 +6,9 @@ osmStream.run(function(err, stream) {
     });
 });
 
+osmStream.runFn(function(err, data) {
+    console.log(data);
+});
+
 osmStream.once(function(err, d) {
 });

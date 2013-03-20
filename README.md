@@ -15,6 +15,13 @@ osmStream
         });
     });
 
+// re-request every 60s
+// callback-style interface
+osmStream
+    .runFn(function(err, data) {
+        // ...
+    });
+
 // one-time request
 osmStream
     .once(function(err, d) {

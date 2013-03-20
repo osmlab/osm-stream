@@ -8,7 +8,7 @@ var osmStream = (function osmMinutely() {
     // presets
     var baseUrl = 'http://overpass-api.de/',
         minuteStatePath = 'augmented_diffs/state.txt',
-        changePath = 'api/augmented_diff?id=229543&info=no&bbox=-253,-62,253,62';
+        changePath = 'api/augmented_diff?';
 
     function minuteStateUrl() {
         return baseUrl + minuteStatePath;
@@ -26,7 +26,7 @@ var osmStream = (function osmMinutely() {
             crossOrigin: true,
             type: 'text',
             success: function(res) {
-                cb(null, res.response);
+                cb(null, parseInt(res.response, 10));
             }
         });
     }
@@ -72,6 +72,7 @@ var osmStream = (function osmMinutely() {
 
     function run(id, cb) {
         requestChangeset(id, function(err, xml) {
+            if (err) return cb([]);
             var actions = xml.getElementsByTagName('action'), a;
             var items = [];
             for (var i = 0; i < actions.length; i++) {
@@ -93,48 +94,65 @@ var osmStream = (function osmMinutely() {
     }
 
     s.once = function(cb) {
-        requestState(function(err, resp) {
+        requestState(function(err, state) {
             var stream = through(function write(data) {
                 cb(null, data);
             });
-            run(resp, stream);
+            run(state, stream.write);
         });
     };
 
-    s.run = function(cb, duration) {
-        requestState(function(err, resp) {
-            var state = resp;
+    s.run = function(cb, duration, dir) {
+        dir = dir || 1;
+        duration = duration || 60 * 1000;
+        var cancel = false;
+        function setCancel() { cancel = true; }
+        requestState(function(err, state) {
             var stream = through(
                 function write(data) {
                     this.queue(data);
                 },
                 function end() {
-                    window.clearInterval(interval);
+                    cancel = true;
                     this.queue(null);
                 });
-            cb(null, stream);
-            run(state++, function(items) {
+            function write(items) {
                 for (var i = 0; i < items.length; i++) {
                     stream.write(items[i]);
                 }
-            });
-            var interval = setInterval(function() {
-                run(state++, stream);
-            }, duration || 60 * 1000);
+            }
+            cb(null, stream);
+            function iterate() {
+                run(state, function(items) {
+                    write(items);
+                    state += dir;
+                    if (!cancel) setTimeout(iterate, duration);
+                });
+            }
+            iterate();
         });
+        return { cancel: setCancel };
     };
 
-    s.runFn = function(cb, duration) {
-        requestState(function(err, resp) {
+    s.runFn = function(cb, duration, dir) {
+        dir = dir || 1;
+        duration = duration || 60 * 1000;
+        function setCancel() { cancel = true; }
+        var cancel = false;
+        requestState(function(err, state) {
             function write(items) {
                 cb(null, items);
             }
-            var state = resp;
-            run(state++, write);
-            var interval = setInterval(function() {
-                run(state++, write);
-            }, duration || 60 * 1000);
+            function iterate() {
+                run(state, function(items) {
+                    write(items);
+                    state += dir;
+                    if (!cancel) setTimeout(iterate, duration);
+                });
+            }
+            iterate();
         });
+        return { cancel: setCancel };
     };
 
     return s;

@@ -1,6 +1,6 @@
 {
   "name": "osm-stream",
-  "version": "0.0.2",
+  "version": "0.0.4",
   "description": "stream minutely openstreetmap diffs",
   "main": "index.js",
   "scripts": {
@@ -16,7 +16,6 @@
   "dependencies": {
     "reqwest": "~0.6.4",
     "through": "~2.2.6",
-    "pad": "0.0.4",
     "qs": "~0.5.3"
   },
   "devDependencies": {

@@ -11,7 +11,7 @@ osmStream.runFn(function(err, data) {
 });
 //
 // var downto = 5;
-// 
+//
 // var s = osmStream.runFn(function(err, data) {
 //     console.log('backwards!');
 //     // console.log(data);

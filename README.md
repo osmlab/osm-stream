@@ -4,6 +4,36 @@ Uses the [Overpass API](http://overpass-api.de/) for
 [Augmented Diffs](http://wiki.openstreetmap.org/wiki/Overpass_API/Augmented_Diffs),
 loads data with CORS and exposes a stream.
 
+## using
+
+Without browserify: copy `osmstream.js`. That works as an `osmStream` global
+and with UMD.
+
+With browserify `npm install osmstream`
+
+## api
+
+`s.once(function(err, data) { })`
+
+Get one batch of changes right now.
+
+`s.run(function(err, stream), duration, dir)`
+
+duration is how long between runs: default 1 minute
+
+dir is direction: either `1`, the default, or `-1` for rewind.
+
+`s.runFn(function(err, stream), duration, dir)`
+
+Same as `.run` but instead of returning a stream that pipes objects, calls
+the callback once per object.
+
+duration is how long between runs: default 1 minute
+
+dir is direction: either `1`, the default, or `-1` for rewind.
+
+## example
+
 ```js
 var osmStream = require('osmStream');
 

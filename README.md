@@ -13,17 +13,17 @@ With browserify `npm install osmstream`
 
 ## api
 
-`s.once(function(err, data) { })`
+`s.once(function(err, data) { }, [bbox])`
 
 Get one batch of changes right now.
 
-`s.run(function(err, stream), duration, dir)`
+`s.run(function(err, stream), duration, [dir], [bbox])`
 
 duration is how long between runs: default 1 minute
 
 dir is direction: either `1`, the default, or `-1` for rewind.
 
-`s.runFn(function(err, stream), duration, dir)`
+`s.runFn(function(err, stream), duration, [dir], [bbox])`
 
 Same as `.run` but instead of returning a stream that pipes objects, calls
 the callback once per object.

@@ -1,6 +1,6 @@
 {
   "name": "osm-stream",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "description": "stream minutely openstreetmap diffs",
   "main": "index.js",
   "scripts": {
@@ -15,8 +15,8 @@
   "license": "BSD",
   "dependencies": {
     "reqwest": "~0.6.4",
-    "through": "~2.2.6",
-    "qs": "~0.5.3"
+    "through": "~2.3.1",
+    "qs": "~0.5.6"
   },
   "devDependencies": {
     "browserify": "2.4.3"

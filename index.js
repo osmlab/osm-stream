@@ -14,9 +14,9 @@ var osmStream = (function osmMinutely() {
         return baseUrl + minuteStatePath;
     }
 
-    function changeUrl(id) {
+    function changeUrl(id, bbox) {
         return baseUrl + changePath + qs.stringify({
-            id: id, info: 'no', bbox: '-180,-90,180,90'
+            id: id, info: 'no', bbox: bbox || '-180,-90,180,90'
         });
     }
 
@@ -31,9 +31,9 @@ var osmStream = (function osmMinutely() {
         });
     }
 
-    function requestChangeset(state, cb) {
+    function requestChangeset(state, cb, bbox) {
         reqwest({
-            url: changeUrl(state),
+            url: changeUrl(state, bbox),
             crossOrigin: true,
             type: 'xml',
             success: function(res) {
@@ -70,7 +70,7 @@ var osmStream = (function osmMinutely() {
         }
     }
 
-    function run(id, cb) {
+    function run(id, cb, bbox) {
         requestChangeset(id, function(err, xml) {
             if (err) return cb([]);
             var actions = xml.getElementsByTagName('action'), a;
@@ -90,19 +90,19 @@ var osmStream = (function osmMinutely() {
                 }
             }
             cb(items);
-        });
+        }, bbox);
     }
 
-    s.once = function(cb) {
+    s.once = function(cb, bbox) {
         requestState(function(err, state) {
             var stream = through(function write(data) {
                 cb(null, data);
             });
-            run(state, stream.write);
+            run(state, stream.write, bbox);
         });
     };
 
-    s.run = function(cb, duration, dir) {
+    s.run = function(cb, duration, dir, bbox) {
         dir = dir || 1;
         duration = duration || 60 * 1000;
         var cancel = false;
@@ -127,14 +127,14 @@ var osmStream = (function osmMinutely() {
                     write(items);
                     state += dir;
                     if (!cancel) setTimeout(iterate, duration);
-                });
+                }, bbou);
             }
             iterate();
         });
         return { cancel: setCancel };
     };
 
-    s.runFn = function(cb, duration, dir) {
+    s.runFn = function(cb, duration, dir, bbox) {
         dir = dir || 1;
         duration = duration || 60 * 1000;
         function setCancel() { cancel = true; }
@@ -148,7 +148,7 @@ var osmStream = (function osmMinutely() {
                     write(items);
                     state += dir;
                     if (!cancel) setTimeout(iterate, duration);
-                });
+                }, bbox);
             }
             iterate();
         });

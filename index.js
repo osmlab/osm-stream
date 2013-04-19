@@ -49,7 +49,9 @@ var osmStream = (function osmMinutely() {
             lat: +x.getAttribute('lat'),
             lon: +x.getAttribute('lon'),
             user: x.getAttribute('user'),
-            timestamp: x.getAttribute('timestamp')
+            timestamp: x.getAttribute('timestamp'),
+            changeset: +x.getAttribute('changeset'),
+            id: +x.getAttribute('id')
         };
         if (o.type == 'way') {
             var bounds = get(x, ['bounds']);
@@ -58,6 +60,25 @@ var osmStream = (function osmMinutely() {
                 +bounds.getAttribute('maxlon'),
                 +bounds.getAttribute('minlat'),
                 +bounds.getAttribute('minlon')];
+
+            var nds = x.getElementsByTagName('nd');
+            var nodes = [];
+            for (var i = 0; i < nds.length; i++) {
+                nodes.push([
+                    nds[i].getAttribute('lat'),
+                    nds[i].getAttribute('lon')
+                ]);
+            }
+            if (nodes.length > 0) {
+                o.linestring = nodes;
+            }
+
+            var tgs = x.getElementsByTagName('tag');
+            var tags = {};
+            for (var j = 0; j < tgs.length; j++) {
+                tags[tgs[j].getAttribute("k")] = tgs[j].getAttribute("v");
+            }
+            o.tags = tags;
         }
         return o;
     }

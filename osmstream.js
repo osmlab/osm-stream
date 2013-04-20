@@ -55,7 +55,7 @@ var osmStream = (function osmMinutely() {
             changeset: +x.getAttribute('changeset'),
             id: +x.getAttribute('id')
         };
-        if (o.type == 'way') {
+        if (o.type === 'way') {
             var bounds = get(x, ['bounds']);
             o.bounds = [
                 +bounds.getAttribute('maxlat'),
@@ -67,8 +67,8 @@ var osmStream = (function osmMinutely() {
             var nodes = [];
             for (var i = 0; i < nds.length; i++) {
                 nodes.push([
-                    nds[i].getAttribute('lat'),
-                    nds[i].getAttribute('lon')
+                    +nds[i].getAttribute('lat'),
+                    +nds[i].getAttribute('lon')
                 ]);
             }
             if (nodes.length > 0) {
@@ -95,7 +95,8 @@ var osmStream = (function osmMinutely() {
 
     function run(id, cb, bbox) {
         requestChangeset(id, function(err, xml) {
-            if (err) return cb([]);
+            if (err) return cb('Error');
+            if (!xml) return cb('No items');
             var actions = xml.getElementsByTagName('action'), a;
             var items = [];
             for (var i = 0; i < actions.length; i++) {
@@ -103,8 +104,10 @@ var osmStream = (function osmMinutely() {
                 a = actions[i];
                 o.type = a.getAttribute('type');
                 if (o.type == 'modify') {
-                    o.old = parseNode(get(get(a, 'old'), ['node', 'way']));
-                    o.neu = parseNode(get(get(a, 'new'), ['node', 'way']));
+                    o.old = parseNode(get(get(a, ['old']), ['node', 'way']));
+                    o.neu = parseNode(get(get(a, ['new']), ['node', 'way']));
+                } else if (o.type == 'delete') {
+                    o.old = parseNode(get(get(a, ['old']), ['node', 'way']));
                 } else {
                     o.neu = parseNode(get(a, ['node', 'way']));
                 }
@@ -112,13 +115,13 @@ var osmStream = (function osmMinutely() {
                     items.push(o);
                 }
             }
-            cb(items);
+            cb(null, items);
         }, bbox);
     }
 
     s.once = function(cb, bbox) {
         requestState(function(err, state) {
-            var stream = through(function write(data) {
+            var stream = through(function write(err, data) {
                 cb(null, data);
             });
             run(state, stream.write, bbox);
@@ -146,11 +149,13 @@ var osmStream = (function osmMinutely() {
             }
             cb(null, stream);
             function iterate() {
-                run(state, function(items) {
-                    write(items);
-                    state += dir;
+                run(state, function(err, items) {
+                    if (!err) {
+                        write(items);
+                        state += dir;
+                    }
                     if (!cancel) setTimeout(iterate, duration);
-                }, bbou);
+                }, bbox);
             }
             iterate();
         });
@@ -163,13 +168,13 @@ var osmStream = (function osmMinutely() {
         function setCancel() { cancel = true; }
         var cancel = false;
         requestState(function(err, state) {
-            function write(items) {
-                cb(null, items);
-            }
+            function write(items) { cb(null, items); }
             function iterate() {
-                run(state, function(items) {
-                    write(items);
-                    state += dir;
+                run(state, function(err, items) {
+                    if (!err) {
+                        write(items);
+                        state += dir;
+                    }
                     if (!cancel) setTimeout(iterate, duration);
                 }, bbox);
             }

@@ -1,30 +1,13 @@
 ;(function(e,t,n){function r(n,i){if(!t[n]){if(!e[n]){var s=typeof require=="function"&&require;if(!i&&s)return s(n,!0);throw new Error("Cannot find module '"+n+"'")}var o=t[n]={exports:{}};e[n][0](function(t){var i=e[n][1][t];return r(i?i:t)},o,o.exports)}return t[n].exports}for(var i=0;i<n.length;i++)r(n[i]);return r})({1:[function(require,module,exports){
 var osmStream = require('./');
 
-// osmStream.run(function(err, stream) {
-//     stream.on('data', function(d) {
-//         console.log(d);
-//     });
-// });
+var p = document.getElementById('output');
 
 osmStream.runFn(function(err, data) {
-    console.log(data);
+    if (err) p.innerHTML += '\nError';
+    p.innerHTML += '\nData: ' + data.length;
 });
-//
-// var downto = 5;
-//
-// var s = osmStream.runFn(function(err, data) {
-//     console.log('backwards!');
-//     // console.log(data);
-//     if (!(downto--)) {
-//         console.log('cancelling');
-//         s.cancel();
-//     }
-// }, 10, -1);
 
-osmStream.once(function(err, d) {
-    console.log(d);
-});
 
 },{"./":2}],2:[function(require,module,exports){
 var reqwest = require('reqwest'),
@@ -82,7 +65,7 @@ var osmStream = (function osmMinutely() {
             changeset: +x.getAttribute('changeset'),
             id: +x.getAttribute('id')
         };
-        if (o.type == 'way') {
+        if (o.type === 'way') {
             var bounds = get(x, ['bounds']);
             o.bounds = [
                 +bounds.getAttribute('maxlat'),
@@ -94,8 +77,8 @@ var osmStream = (function osmMinutely() {
             var nodes = [];
             for (var i = 0; i < nds.length; i++) {
                 nodes.push([
-                    nds[i].getAttribute('lat'),
-                    nds[i].getAttribute('lon')
+                    +nds[i].getAttribute('lat'),
+                    +nds[i].getAttribute('lon')
                 ]);
             }
             if (nodes.length > 0) {
@@ -122,7 +105,8 @@ var osmStream = (function osmMinutely() {
 
     function run(id, cb, bbox) {
         requestChangeset(id, function(err, xml) {
-            if (err) return cb([]);
+            if (err) return cb('Error');
+            if (!xml) return cb('No items');
             var actions = xml.getElementsByTagName('action'), a;
             var items = [];
             for (var i = 0; i < actions.length; i++) {
@@ -130,8 +114,10 @@ var osmStream = (function osmMinutely() {
                 a = actions[i];
                 o.type = a.getAttribute('type');
                 if (o.type == 'modify') {
-                    o.old = parseNode(get(get(a, 'old'), ['node', 'way']));
-                    o.neu = parseNode(get(get(a, 'new'), ['node', 'way']));
+                    o.old = parseNode(get(get(a, ['old']), ['node', 'way']));
+                    o.neu = parseNode(get(get(a, ['new']), ['node', 'way']));
+                } else if (o.type == 'delete') {
+                    o.old = parseNode(get(get(a, ['old']), ['node', 'way']));
                 } else {
                     o.neu = parseNode(get(a, ['node', 'way']));
                 }
@@ -139,13 +125,13 @@ var osmStream = (function osmMinutely() {
                     items.push(o);
                 }
             }
-            cb(items);
+            cb(null, items);
         }, bbox);
     }
 
     s.once = function(cb, bbox) {
         requestState(function(err, state) {
-            var stream = through(function write(data) {
+            var stream = through(function write(err, data) {
                 cb(null, data);
             });
             run(state, stream.write, bbox);
@@ -173,11 +159,13 @@ var osmStream = (function osmMinutely() {
             }
             cb(null, stream);
             function iterate() {
-                run(state, function(items) {
-                    write(items);
-                    state += dir;
+                run(state, function(err, items) {
+                    if (!err) {
+                        write(items);
+                        state += dir;
+                    }
                     if (!cancel) setTimeout(iterate, duration);
-                }, bbou);
+                }, bbox);
             }
             iterate();
         });
@@ -190,13 +178,13 @@ var osmStream = (function osmMinutely() {
         function setCancel() { cancel = true; }
         var cancel = false;
         requestState(function(err, state) {
-            function write(items) {
-                cb(null, items);
-            }
+            function write(items) { cb(null, items); }
             function iterate() {
-                run(state, function(items) {
-                    write(items);
-                    state += dir;
+                run(state, function(err, items) {
+                    if (!err) {
+                        write(items);
+                        state += dir;
+                    }
                     if (!cancel) setTimeout(iterate, duration);
                 }, bbox);
             }
@@ -210,169 +198,7 @@ var osmStream = (function osmMinutely() {
 
 module.exports = osmStream;
 
-},{"reqwest":3,"through":4,"qs":5}],6:[function(require,module,exports){
-// shim for using process in browser
-
-var process = module.exports = {};
-
-process.nextTick = (function () {
-    var canSetImmediate = typeof window !== 'undefined'
-    && window.setImmediate;
-    var canPost = typeof window !== 'undefined'
-    && window.postMessage && window.addEventListener
-    ;
-
-    if (canSetImmediate) {
-        return function (f) { return window.setImmediate(f) };
-    }
-
-    if (canPost) {
-        var queue = [];
-        window.addEventListener('message', function (ev) {
-            if (ev.source === window && ev.data === 'process-tick') {
-                ev.stopPropagation();
-                if (queue.length > 0) {
-                    var fn = queue.shift();
-                    fn();
-                }
-            }
-        }, true);
-
-        return function nextTick(fn) {
-            queue.push(fn);
-            window.postMessage('process-tick', '*');
-        };
-    }
-
-    return function nextTick(fn) {
-        setTimeout(fn, 0);
-    };
-})();
-
-process.title = 'browser';
-process.browser = true;
-process.env = {};
-process.argv = [];
-
-process.binding = function (name) {
-    throw new Error('process.binding is not supported');
-}
-
-// TODO(shtylman)
-process.cwd = function () { return '/' };
-process.chdir = function (dir) {
-    throw new Error('process.chdir is not supported');
-};
-
-},{}],4:[function(require,module,exports){
-(function(process){var Stream = require('stream')
-
-// through
-//
-// a stream that does nothing but re-emit the input.
-// useful for aggregating a series of changing but not ending streams into one stream)
-
-exports = module.exports = through
-through.through = through
-
-//create a readable writable stream.
-
-function through (write, end, opts) {
-  write = write || function (data) { this.queue(data) }
-  end = end || function () { this.queue(null) }
-
-  var ended = false, destroyed = false, buffer = []
-  var stream = new Stream()
-  stream.readable = stream.writable = true
-  stream.paused = false
-
-//  stream.autoPause   = !(opts && opts.autoPause   === false)
-  stream.autoDestroy = !(opts && opts.autoDestroy === false)
-
-  stream.write = function (data) {
-    write.call(this, data)
-    return !stream.paused
-  }
-
-  function drain() {
-    while(buffer.length && !stream.paused) {
-      var data = buffer.shift()
-      if(null === data)
-        return stream.emit('end')
-      else
-        stream.emit('data', data)
-    }
-  }
-
-  stream.queue = stream.push = function (data) {
-    buffer.push(data)
-    drain()
-    return stream
-  }
-
-  //this will be registered as the first 'end' listener
-  //must call destroy next tick, to make sure we're after any
-  //stream piped from here.
-  //this is only a problem if end is not emitted synchronously.
-  //a nicer way to do this is to make sure this is the last listener for 'end'
-
-  stream.on('end', function () {
-    stream.readable = false
-    if(!stream.writable && stream.autoDestroy)
-      process.nextTick(function () {
-        stream.destroy()
-      })
-  })
-
-  function _end () {
-    stream.writable = false
-    end.call(stream)
-    if(!stream.readable && stream.autoDestroy)
-      stream.destroy()
-  }
-
-  stream.end = function (data) {
-    if(ended) return
-    ended = true
-    if(arguments.length) stream.write(data)
-    _end() // will emit or queue
-    return stream
-  }
-
-  stream.destroy = function () {
-    if(destroyed) return
-    destroyed = true
-    ended = true
-    buffer.length = 0
-    stream.writable = stream.readable = false
-    stream.emit('close')
-    return stream
-  }
-
-  stream.pause = function () {
-    if(stream.paused) return
-    stream.paused = true
-    return stream
-  }
-
-  stream.resume = function () {
-    if(stream.paused) {
-      stream.paused = false
-      stream.emit('resume')
-    }
-    drain()
-    //may have become paused again,
-    //as drain emits 'data'.
-    if(!stream.paused)
-      stream.emit('drain')
-    return stream
-  }
-  return stream
-}
-
-
-})(require("__browserify_process"))
-},{"stream":7,"__browserify_process":6}],3:[function(require,module,exports){
+},{"reqwest":3,"through":4,"qs":5}],3:[function(require,module,exports){
 /*!
   * Reqwest! A general purpose XHR connection manager
   * (c) Dustin Diaz 2012
@@ -859,7 +685,169 @@ function through (write, end, opts) {
   return reqwest
 });
 
-},{}],5:[function(require,module,exports){
+},{}],6:[function(require,module,exports){
+// shim for using process in browser
+
+var process = module.exports = {};
+
+process.nextTick = (function () {
+    var canSetImmediate = typeof window !== 'undefined'
+    && window.setImmediate;
+    var canPost = typeof window !== 'undefined'
+    && window.postMessage && window.addEventListener
+    ;
+
+    if (canSetImmediate) {
+        return function (f) { return window.setImmediate(f) };
+    }
+
+    if (canPost) {
+        var queue = [];
+        window.addEventListener('message', function (ev) {
+            if (ev.source === window && ev.data === 'process-tick') {
+                ev.stopPropagation();
+                if (queue.length > 0) {
+                    var fn = queue.shift();
+                    fn();
+                }
+            }
+        }, true);
+
+        return function nextTick(fn) {
+            queue.push(fn);
+            window.postMessage('process-tick', '*');
+        };
+    }
+
+    return function nextTick(fn) {
+        setTimeout(fn, 0);
+    };
+})();
+
+process.title = 'browser';
+process.browser = true;
+process.env = {};
+process.argv = [];
+
+process.binding = function (name) {
+    throw new Error('process.binding is not supported');
+}
+
+// TODO(shtylman)
+process.cwd = function () { return '/' };
+process.chdir = function (dir) {
+    throw new Error('process.chdir is not supported');
+};
+
+},{}],4:[function(require,module,exports){
+(function(process){var Stream = require('stream')
+
+// through
+//
+// a stream that does nothing but re-emit the input.
+// useful for aggregating a series of changing but not ending streams into one stream)
+
+exports = module.exports = through
+through.through = through
+
+//create a readable writable stream.
+
+function through (write, end, opts) {
+  write = write || function (data) { this.queue(data) }
+  end = end || function () { this.queue(null) }
+
+  var ended = false, destroyed = false, buffer = []
+  var stream = new Stream()
+  stream.readable = stream.writable = true
+  stream.paused = false
+
+//  stream.autoPause   = !(opts && opts.autoPause   === false)
+  stream.autoDestroy = !(opts && opts.autoDestroy === false)
+
+  stream.write = function (data) {
+    write.call(this, data)
+    return !stream.paused
+  }
+
+  function drain() {
+    while(buffer.length && !stream.paused) {
+      var data = buffer.shift()
+      if(null === data)
+        return stream.emit('end')
+      else
+        stream.emit('data', data)
+    }
+  }
+
+  stream.queue = stream.push = function (data) {
+    buffer.push(data)
+    drain()
+    return stream
+  }
+
+  //this will be registered as the first 'end' listener
+  //must call destroy next tick, to make sure we're after any
+  //stream piped from here.
+  //this is only a problem if end is not emitted synchronously.
+  //a nicer way to do this is to make sure this is the last listener for 'end'
+
+  stream.on('end', function () {
+    stream.readable = false
+    if(!stream.writable && stream.autoDestroy)
+      process.nextTick(function () {
+        stream.destroy()
+      })
+  })
+
+  function _end () {
+    stream.writable = false
+    end.call(stream)
+    if(!stream.readable && stream.autoDestroy)
+      stream.destroy()
+  }
+
+  stream.end = function (data) {
+    if(ended) return
+    ended = true
+    if(arguments.length) stream.write(data)
+    _end() // will emit or queue
+    return stream
+  }
+
+  stream.destroy = function () {
+    if(destroyed) return
+    destroyed = true
+    ended = true
+    buffer.length = 0
+    stream.writable = stream.readable = false
+    stream.emit('close')
+    return stream
+  }
+
+  stream.pause = function () {
+    if(stream.paused) return
+    stream.paused = true
+    return stream
+  }
+
+  stream.resume = function () {
+    if(stream.paused) {
+      stream.paused = false
+      stream.emit('resume')
+    }
+    drain()
+    //may have become paused again,
+    //as drain emits 'data'.
+    if(!stream.paused)
+      stream.emit('drain')
+    return stream
+  }
+  return stream
+}
+
+
+})(require("__browserify_process"))
+},{"stream":7,"__browserify_process":6}],5:[function(require,module,exports){
 
 /**
  * Object#toString() ref for stringify().

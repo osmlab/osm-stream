@@ -1,13 +1,13 @@
 {
   "name": "osm-stream",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "description": "stream minutely openstreetmap diffs",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "./node_modules/browservefy/bin/browservefy index.js:bundle.js 8080 --browserify=./node_modules/browserify/bin/cmd.js -- -d"
   },
-  "repository": "",
+  "repository": "git@github.com:osmlab/osm-stream.git",
   "keywords": [
     "openstreetmap"
   ],

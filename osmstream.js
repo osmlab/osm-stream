@@ -96,7 +96,7 @@ var osmStream = (function osmMinutely() {
     function run(id, cb, bbox) {
         requestChangeset(id, function(err, xml) {
             if (err) return cb('Error');
-            if (!xml) return cb('No items');
+            if (!xml.getElementsByTagName) return cb('No items');
             var actions = xml.getElementsByTagName('action'), a;
             var items = [];
             for (var i = 0; i < actions.length; i++) {

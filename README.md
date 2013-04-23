@@ -65,3 +65,9 @@ you can end it and that will also stop the run cycle.
 ### See Also
 
 * [osm-stream-process](https://github.com/iandees/osm-stream-process) in Python
+
+### As Seen
+
+* [Show Me The Way](http://osmlab.github.io/show-me-the-way/) [source](https://github.com/osmlab/show-me-the-way)
+* [OSM Live Map](http://osmlab.github.io/osm-live-map/) [source](https://github.com/osmlab/osm-live-map)
+* [OSMBuzz](http://spatialbit.com/osmbuzz/)

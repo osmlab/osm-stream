@@ -1,6 +1,6 @@
 {
   "name": "osm-stream",
-  "version": "0.0.8",
+  "version": "0.0.9",
   "description": "stream minutely openstreetmap diffs",
   "main": "index.js",
   "scripts": {
@@ -14,7 +14,7 @@
   "author": "Tom MacWright <tom@macwright.org>",
   "license": "BSD",
   "dependencies": {
-    "reqwest": "~0.6.4",
+    "reqwest": "~0.7.3",
     "through": "~2.3.1",
     "qs": "~0.5.6"
   },

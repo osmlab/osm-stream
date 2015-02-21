@@ -12,7 +12,7 @@
     "openstreetmap"
   ],
   "author": "Tom MacWright <tom@macwright.org>",
-  "license": "Public Domain",
+  "license": "BSD",
   "dependencies": {
     "reqwest": "~0.7.3",
     "through": "~2.3.1",

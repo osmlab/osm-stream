@@ -35,7 +35,7 @@ dir is direction: either `1`, the default, or `-1` for rewind.
 ## example
 
 ```js
-var osmStream = require('osmStream');
+var osmStream = require('osm-stream');
 
 // re-request every 60s
 osmStream

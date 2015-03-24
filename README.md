@@ -9,7 +9,7 @@ loads data with CORS and exposes a stream.
 Without browserify: copy `osmstream.js`. That works as an `osmStream` global
 and with UMD.
 
-With browserify `npm install osmstream`
+With browserify `npm install osm-stream`
 
 ## api
 

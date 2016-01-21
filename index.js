@@ -105,13 +105,11 @@ var osmStream = (function osmMinutely() {
                 var o = {};
                 a = actions[i];
                 o.type = a.getAttribute('type');
-                if (o.type == 'modify') {
+                if (o.type == 'create') {
+                    o.neu = parseNode(get(a, ['node', 'way']));
+                } else {
                     o.old = parseNode(get(get(a, ['old']), ['node', 'way']));
                     o.neu = parseNode(get(get(a, ['new']), ['node', 'way']));
-                } else if (o.type == 'delete') {
-                    o.old = parseNode(get(get(a, ['old']), ['node', 'way']));
-                } else {
-                    o.neu = parseNode(get(a, ['node', 'way']));
                 }
                 if (o.old || o.neu) {
                     items.push(o);

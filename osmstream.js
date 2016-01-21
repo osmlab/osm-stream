@@ -43,9 +43,9 @@ var osmStream = (function osmMinutely() {
         });
     }
 
-    function parseNode(x) {
+    function parseNodeBase(x) {
         if (!x) return undefined;
-        var o = {
+        return {
             type: x.tagName,
             id: +x.getAttribute('id'),
             version: +x.getAttribute('version'),
@@ -55,6 +55,11 @@ var osmStream = (function osmMinutely() {
             user: x.getAttribute('user'),
             visible: x.getAttribute('visible') !== 'false'
         };
+    }
+
+    function parseNode(x) {
+        if (!x) return undefined;
+        var o = parseNodeBase(x);
         if (o.type === 'node') {
             o.lat = +x.getAttribute('lat');
             o.lon = +x.getAttribute('lon');
@@ -108,9 +113,12 @@ var osmStream = (function osmMinutely() {
                 o.type = a.getAttribute('type');
                 if (o.type == 'create') {
                     o.neu = parseNode(get(a, ['node', 'way']));
-                } else {
+                } else if (o.type == 'modify') {
                     o.old = parseNode(get(get(a, ['old']), ['node', 'way']));
                     o.neu = parseNode(get(get(a, ['new']), ['node', 'way']));
+                } else if (o.type == 'delete') {
+                    o.old = parseNode(get(get(a, ['old']), ['node', 'way']));
+                    o.neu = parseNodeBase(get(get(a, ['new']), ['node', 'way']));
                 }
                 if (o.old || o.neu) {
                     items.push(o);

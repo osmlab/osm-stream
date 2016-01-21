@@ -46,14 +46,18 @@ var osmStream = (function osmMinutely() {
         if (!x) return undefined;
         var o = {
             type: x.tagName,
-            lat: +x.getAttribute('lat'),
-            lon: +x.getAttribute('lon'),
-            user: x.getAttribute('user'),
+            id: +x.getAttribute('id'),
+            version: +x.getAttribute('version'),
             timestamp: x.getAttribute('timestamp'),
             changeset: +x.getAttribute('changeset'),
-            id: +x.getAttribute('id')
+            uid: +x.getAttribute('uid'),
+            user: x.getAttribute('user'),
+            visible: x.getAttribute('visible') !== 'false'
         };
-        if (o.type === 'way') {
+        if (o.type === 'node') {
+            o.lat = +x.getAttribute('lat');
+            o.lon = +x.getAttribute('lon');
+        } else if (o.type === 'way') {
             var bounds = get(x, ['bounds']);
             o.bounds = [
                 +bounds.getAttribute('maxlat'),

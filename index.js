@@ -42,6 +42,15 @@ var osmStream = (function osmMinutely() {
         });
     }
 
+    function parseTags(x) {
+        var tgs = x.getElementsByTagName('tag');
+        var tags = {};
+        for (var j = 0; j < tgs.length; j++) {
+            tags[tgs[j].getAttribute("k")] = tgs[j].getAttribute("v");
+        }
+        return tags;
+    }
+
     function parseNodeBase(x) {
         if (!x) return undefined;
         return {
@@ -52,8 +61,52 @@ var osmStream = (function osmMinutely() {
             changeset: +x.getAttribute('changeset'),
             uid: +x.getAttribute('uid'),
             user: x.getAttribute('user'),
-            visible: x.getAttribute('visible') !== 'false'
+            visible: x.getAttribute('visible') !== 'false',
+            tags: parseTags(x)
         };
+    }
+
+    function parseBounds(x) {
+        var bounds = get(x, ['bounds']);
+        return [
+            +bounds.getAttribute('maxlat'),
+            +bounds.getAttribute('maxlon'),
+            +bounds.getAttribute('minlat'),
+            +bounds.getAttribute('minlon')
+        ];
+    }
+
+    function parseMembers(x) {
+        var mbrs = x.getElementsByTagName('members');
+        var members = [];
+
+        for (var i = 0; i < mbrs.length; i++) {
+            var mbr = {
+                type: mbrs[i].getAttribute('type'),
+                ref: +mbrs[i].getAttribute('ref'),
+                role: mbrs[i].getAttribute('role')
+            };
+
+            if
+
+            members.push(mbr);
+        }
+
+        return members;
+    }
+
+    function parseLinestring(x) {
+        var nds = x.getElementsByTagName('nd');
+        var nodes = [];
+
+        for (var i = 0; i < nds.length; i++) {
+            nodes.push([
+                +nds[i].getAttribute('lat'),
+                +nds[i].getAttribute('lon')
+            ]);
+        }
+
+        return nodes;
     }
 
     function parseNode(x) {
@@ -63,31 +116,17 @@ var osmStream = (function osmMinutely() {
             o.lat = +x.getAttribute('lat');
             o.lon = +x.getAttribute('lon');
         } else if (o.type === 'way') {
-            var bounds = get(x, ['bounds']);
-            o.bounds = [
-                +bounds.getAttribute('maxlat'),
-                +bounds.getAttribute('maxlon'),
-                +bounds.getAttribute('minlat'),
-                +bounds.getAttribute('minlon')];
+            o.bounds = parseBounds(x);
 
-            var nds = x.getElementsByTagName('nd');
-            var nodes = [];
-            for (var i = 0; i < nds.length; i++) {
-                nodes.push([
-                    +nds[i].getAttribute('lat'),
-                    +nds[i].getAttribute('lon')
-                ]);
-            }
+            var nodes = parseLinestring(x);
             if (nodes.length > 0) {
                 o.linestring = nodes;
             }
+        } else if (o.type === 'relation') {
+            o.bounds = parseBounds(x);
+            o.members = parseMembers(x);
 
-            var tgs = x.getElementsByTagName('tag');
-            var tags = {};
-            for (var j = 0; j < tgs.length; j++) {
-                tags[tgs[j].getAttribute("k")] = tgs[j].getAttribute("v");
-            }
-            o.tags = tags;
+
         }
         return o;
     }

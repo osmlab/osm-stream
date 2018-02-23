@@ -87,8 +87,6 @@ var osmStream = (function osmMinutely() {
                 role: mbrs[i].getAttribute('role')
             };
 
-            if
-
             members.push(mbr);
         }
 

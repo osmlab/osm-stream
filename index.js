@@ -38,6 +38,9 @@ var osmStream = (function osmMinutely() {
             type: 'xml',
             success: function(res) {
                 cb(null, res);
+            },
+            error: function (err) {
+                cb(err);
             }
         });
     }

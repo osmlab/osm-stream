@@ -17,13 +17,15 @@ With browserify `npm install osm-stream`
 
 Get one batch of changes right now.
 
-`s.run(function(err, stream), duration, [dir], [bbox])`
+`s.run(function(err, stream), duration, [dir], [bbox], [maxRetries])`
 
 duration is how long between runs: default 1 minute
 
 dir is direction: either `1`, the default, or `-1` for rewind.
 
-`s.runFn(function(err, stream), duration, [dir], [bbox])`
+maxRetries: How often to retry fetching the current diff before skipping it.
+
+`s.runFn(function(err, stream), duration, [dir], [bbox], [maxRetries])`
 
 Same as `.run` but instead of returning a stream that pipes objects, calls
 the callback once per object.
@@ -31,6 +33,8 @@ the callback once per object.
 duration is how long between runs: default 1 minute
 
 dir is direction: either `1`, the default, or `-1` for rewind.
+
+maxRetries: How often to retry fetching the current diff before skipping it.
 
 ## example
 

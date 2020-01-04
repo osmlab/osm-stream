@@ -38,6 +38,9 @@ var osmStream = (function osmMinutely() {
             type: 'xml',
             success: function(res) {
                 cb(null, res);
+            },
+            error: function (err) {
+                cb(err);
             }
         });
     }
@@ -139,7 +142,7 @@ var osmStream = (function osmMinutely() {
 
     function run(id, cb, bbox) {
         requestChangeset(id, function(err, xml) {
-            if (err) return cb('Error');
+            if (err || !xml) return cb('Error');
             if (!xml.getElementsByTagName) return cb('No items');
             var actions = xml.getElementsByTagName('action'), a;
             var items = [];
@@ -173,9 +176,10 @@ var osmStream = (function osmMinutely() {
         });
     };
 
-    s.run = function(cb, duration, dir, bbox) {
+    s.run = function(cb, duration, dir, bbox, maxRetries) {
         dir = dir || 1;
         duration = duration || 60 * 1000;
+        var tries = 0;
         var cancel = false;
         function setCancel() { cancel = true; }
         requestState(function(err, state) {
@@ -197,7 +201,13 @@ var osmStream = (function osmMinutely() {
                 run(state, function(err, items) {
                     if (!err) {
                         write(items);
+                    }
+                    if (!err || ((maxRetries || maxRetries === 0) && tries >= maxRetries)) {
+                        tries = 0;
                         state += dir;
+                    }
+                    else {
+                        tries++;
                     }
                     if (!cancel) setTimeout(iterate, duration);
                 }, bbox);
@@ -207,9 +217,10 @@ var osmStream = (function osmMinutely() {
         return { cancel: setCancel };
     };
 
-    s.runFn = function(cb, duration, dir, bbox) {
+    s.runFn = function(cb, duration, dir, bbox, maxRetries) {
         dir = dir || 1;
         duration = duration || 60 * 1000;
+        var tries = 0;
         function setCancel() { cancel = true; }
         var cancel = false;
         requestState(function(err, state) {
@@ -218,7 +229,13 @@ var osmStream = (function osmMinutely() {
                 run(state, function(err, items) {
                     if (!err) {
                         write(items);
+                    }
+                    if (!err || ((maxRetries || maxRetries === 0) && tries >= maxRetries)) {
+                        tries = 0;
                         state += dir;
+                    }
+                    else {
+                        tries++;
                     }
                     if (!cancel) setTimeout(iterate, duration);
                 }, bbox);
